@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-br" ng-app="listaTelefonica">
+    <meta charset="UTF-8"/>
     <head>
         <title>Lista telefonica</title>
         <meta charset="UTF-8">
@@ -30,9 +31,9 @@
             angular.module("listaTelefonica").controller("listaTelefonicaCtrl", function($scope){
                 $scope.app = "lista Telefonica";
                 $scope.contatos = [
-                    {nome: "Pedro", telefone: "99998888"},
-                    {nome: "Ana", telefone: "88412555"},
-                    {nome: "Maria", telefone: "121354458"}
+                    {nome: "Pedro", telefone: "99998888", data: new Date(), operadora: "Oi", cor: "blue"},
+                    {nome: "Ana", telefone: "88412555", data: new Date(), operadora: "Vivo", cor: "yellow"},
+                    {nome: "Maria", telefone: "121354458", data: new Date(), operadora: "Tim", cor: "red"}
                 ];
                 $scope.operadoras = [
                     {nome: "Oi", codigo: 14},
@@ -52,8 +53,16 @@
                 
                 };
                 $scope.isContatoSelecionado = function (contatos) {
-                    console.log(contatos);
-                }
+                    return contatos.some(function (contato){
+                        return contato.selecionado;
+                    });
+        
+                };
+                $scope.ordenarPor = function (campo){
+                    $scope.criterioDeOrdenacao = campo;
+                    $scope.direcaoDaOrdenacao = !$scope.direcaoDaOrdenacao;
+                };
+               
        
             });
         </script>
@@ -62,14 +71,16 @@
         
         <div class="jumbotron">
             <h3>{{ app }}</h3>
-            {{contatos}}
+            <input type="search" class="form-control" ng-model="criterioDeBusca" placeholder="O que você está procurando?"/>
             <table class="table">
                 <tr>
                     <th></th>
-                    <th>Nome</th>
-                    <th>Telefone</th>
+                    <th><a href="" ng-click="ordenarPor('nome')">Nome</a></th>
+                    <th><a href="" ng-click="ordenarPor('telefone')">Telefone</a></th>
+                    <th>operadora</th>
+                    <th></th>
                 </tr>
-                <tr ng-class="{selecionado: contato.selecionado, negrito: contato.selecionado}" ng-repeat="contato in contatos">
+                <tr ng-class="{selecionado: contato.selecionado, negrito: contato.selecionado}" ng-repeat="contato in contatos | filter:criterioDeBusca | orderBy:criterioDeOrdenacao:direcaoDaOrdenacao">
                     <td>
                         <div class="checkbox">
                         <label>
@@ -77,29 +88,53 @@
                         </label>
                     </div>
                     </td>
-                    <td>{{contato.nome}}</td>
+                    <td>{{contato.nome|uppercase}}</td>
                     <td>{{contato.telefone}}</td>
+                    <td>{{contato.operadora|lowercase}}</td>
+                    <td>{{contato.operadora.nome|lowercase}}</td>
+                    <td>{{contato.data|date: 'dd/MM/yyyy HH:mm'}}</td>
+                    <td><div style="width: 20px; height: 20px;" ng-style="{'background-color': contato.cor}"></div></td>
                 </tr>
             </table>
             <hr>
-      
-            <div class="form-group label-floating">
-                <label class="control-label">Nome</label>
-                <input type="text" class="form-control" ng-model="contato.nome"/>
-            </div>
+            É valido: {{contatoForm.$valid}}<br/>
+            É invalido: {{contatoForm.$invalid}}
+            <form name="contatoForm">
+                <div class="form-group label-floating">
+                    <label class="control-label">Nome</label>
+                    <input type="text" class="form-control" ng-model="contato.nome"  ng-required="true" name="nome" ng-minlength="10"/>
+                </div>
 
-            <div class="form-group label-floating">
-                <label class="control-label">Telefone</label>
-                <input type="text" class="form-control" ng-model="contato.telefone"/>
-            </div>
+                <div class="form-group label-floating">
+                    <label class="control-label">Telefone</label>
+                    <input  type="text" class="form-control" ng-model="contato.telefone" ng-required="true" ng-pattern="/^\d{4,5}-\d{4}$/"/>
+                </div>
+                
+                <select class="form-control" ng-model="contato.operadora" ng-options="operadora.nome for operadora in operadoras"><option value="">Selecionar uma operadora</option>
+                </select>
+            </form>
+
             
-            <select class="form-control" ng-model="contato.operadora" ng-options="operadora.nome for operadora in operadoras"><option value="">Selecionar uma operadora</option></select>
-            <button ng-disabled="!contato.nome " ng-click="adicionarContato(contato)" class="btn btn-primary btn-block btn-round">
+             <div ng-show="contatoForm.nome.$error.required && contatoForm.nome.$dirty" class="alert alert-danger">
+                Por favor, preenha seu nome.
+            </div>
+            <div ng-show="contatoForm.nome.$error.minlength" class="alert alert-warning">
+                O campo nome deve ter no mínimo 10 caracteres.
+            </div>
+            <div ng-show="contatoForm.telefone.$error.required && contatoForm.telefone.$dirty" class="alert alert-danger">
+                Por favor, preenha o telefone.
+            </div>
+            <div ng-show="contatoForm.telefone.$error.pattern" class="alert alert-danger">
+                Por favor, preenha o telefone.
+            </div>
+            <button ng-disabled="contatoForm.$invalid " ng-click="adicionarContato(contato)" class="btn btn-primary btn-block btn-round">
                 <i class="material-icons">favorite</i> Adicionar contato
             </button> 
-            <button ng-disabled="isContatoSelecionado(contatos)" ng-click="apagarContatos(contatos)" class="btn btn-danger btn-block btn-round">
+            <button ng-disabled="!isContatoSelecionado(contatos)" ng-click="apagarContatos(contatos)" class="btn btn-danger btn-block btn-round">
                 <i class="material-icons">delete</i> Apagar contatos
             </button> 
+
+            <div ng-include="'modules/footer.html'"></div>
         <script src="lib/jquery/jquery.min.js"></script>
         <script src="lib/tether/tether.min.js"></script>
         <script src="lib/bootstrap/js/bootstrap.min.js"></script>
